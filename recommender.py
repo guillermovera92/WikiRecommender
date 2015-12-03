@@ -2,6 +2,7 @@
 import re
 from collections import defaultdict
 from math import log
+from scipy import spatial
 
 def create_cleaned_set(articles):
     out = []
@@ -61,3 +62,23 @@ cleaned_articles = create_cleaned_set(all_articles)
 generate_frequency_vectors(cleaned_articles, words_set, calc_doc_counts(cleaned_articles, words_set))
 
 # From here do cosine similarity...
+def calculate_cosine_similarity(docs):
+    seed_article = docs[0]
+    docs = docs[1:]
+    cosine_similarities = defaultdict(float)
+    for doc in docs:
+        A, B = [], []
+        for word in seed_article.frequency_vector:
+            if word in doc.frequency_vector:
+                A.append(seed_vector[word])
+                B.append(doc_vector[word])
+        cosine_similarity = 1 - spatial.distance.cosine(A, B)
+        cosine_similarities[doc.title] = round(cosine_similarity, 4) # Rounding to 5 sig figs
+    return cosine_similarities
+
+# Calculate top pages
+def calcualte_recommendations(cosine_similarities):
+    cos_similarity_to_doc = {v: k for k, v in cosine_similarities.items()}
+    recommended_docs = []
+    for freq in reversed(sorted(cos_similarity_to_doc.keys())):
+        recommended_docs.append(cos_similarity_to_doc[freq].title)
