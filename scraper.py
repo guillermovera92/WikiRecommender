@@ -2,6 +2,7 @@ from wikiapi import WikiApi
 from bs4 import BeautifulSoup
 from Queue import Queue
 import re
+import time
 
 class Scraper:
 
@@ -20,11 +21,11 @@ class Scraper:
             if queue.empty():
                 break
             current_url = queue.get()
-            (page, urls) = self.process_page(current_url)
-            finished.add(current_url)
-            pages.append(page)
-            for u in urls:
-                if u not in finished:
+            if current_url not in finished:
+                (page, urls) = self.process_page(current_url)
+                finished.add(current_url)
+                pages.append(page)
+                for u in urls:
                     queue.put(u)
         return pages
         
@@ -33,7 +34,20 @@ class Scraper:
 
         soup = BeautifulSoup(html)
         body_html = soup.find(id='mw-content-text')
-        title = soup.find(id='firstHeading').string
+        title_tag = soup.find(id='firstHeading')
+        if title_tag.string == None:
+            contents = title_tag.contents
+            string_contents = []
+            for c in contents:
+                if type(c) != str:
+                    string_contents.append(c.string)
+                else:
+                    string_contents.append(c)
+            title = ''.join(string_contents)
+        else:
+            title = title_tag.string
+
+        print title
 
         urls = self.find_urls(body_html)
         (clean_text, headers) = self.clean_html(body_html)
@@ -94,7 +108,10 @@ class Page:
 
 if __name__ == "__main__":
     scraper = Scraper()
-    results = scraper.scrape("https://en.wikipedia.org/wiki/Bleep_censor", 10)
-    print 'Scraped ' + str(len(results)) + ' pages'
-    for page in results:
-        page.print_info()
+    start = time.time()
+    results = scraper.scrape("https://en.wikipedia.org/wiki/Bob_Dylan_(album)", 2)
+    end = time.time()
+    total_time = end - start
+    print 'Scraped ' + str(len(results)) + ' pages in ' + str(total_time) + ' seconds'
+    # for page in results:
+    #     page.print_info()
