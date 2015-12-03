@@ -11,11 +11,15 @@ class Scraper:
     def __init__(self):
         self.wiki = WikiApi()
 
-    def scrape(self, start_url, max):
+    def scrape(self, start_term, max):
         finished = set()
         queue = Queue()
         pages = []
-        queue.put(start_url)
+        search_results = self.wiki.find(start_term)
+        if not search_results:
+            print 'No pages found. Try a different term'
+        else:
+            queue.put('https://en.wikipedia.org/wiki/' + search_results[0])
 
         for i in range(max):
             if queue.empty():
@@ -109,7 +113,7 @@ class Page:
 if __name__ == "__main__":
     scraper = Scraper()
     start = time.time()
-    results = scraper.scrape("https://en.wikipedia.org/wiki/Bob_Dylan_(album)", 2)
+    results = scraper.scrape("rihanna", 10)
     end = time.time()
     total_time = end - start
     print 'Scraped ' + str(len(results)) + ' pages in ' + str(total_time) + ' seconds'
