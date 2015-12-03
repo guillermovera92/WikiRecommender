@@ -30,3 +30,14 @@ def generate_frequency_vector(a, b, blacklist):
 all_articles = [] # This will hook into Guillermo's code
 
 cleanedArticles = create_cleaned_set(all_articles)
+
+
+
+
+
+def get_freq_words(filename='words.txt'):
+    for line in open(filename):
+        words = line.split()
+        return set(words)
+
+words_set = get_freq_words()
