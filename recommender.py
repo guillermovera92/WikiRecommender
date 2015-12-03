@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from math import log
 from scipy import spatial
+import scraper
 
 def create_cleaned_set(articles):
     out = []
@@ -56,7 +57,8 @@ def generate_frequency_vectors(docs, blacklist, doc_counts):
             vector[word] = tfidf
         doc.frequency_vector = vector
 
-all_articles = [] # This will hook into Guillermo's code
+scrp = scraper.Scraper()
+all_articles = scrp.scrape('One Direction', 100) # This will hook into Guillermo's code
 
 cleaned_articles = create_cleaned_set(all_articles)
 generate_frequency_vectors(cleaned_articles, words_set, calc_doc_counts(cleaned_articles, words_set))
@@ -70,10 +72,10 @@ def calculate_cosine_similarity(docs):
         A, B = [], []
         for word in seed_article.frequency_vector:
             if word in doc.frequency_vector:
-                A.append(seed_vector[word])
-                B.append(doc_vector[word])
+                A.append(seed_article.frequency_vector[word])
+                B.append(doc.frequency_vector[word])
         cosine_similarity = 1 - spatial.distance.cosine(A, B)
-        cosine_similarities[doc.title] = round(cosine_similarity, 4) # Rounding to 5 sig figs
+        cosine_similarities[doc] = round(cosine_similarity, 4) # Rounding to 5 sig figs
     return cosine_similarities
 
 # Calculate top pages
@@ -81,4 +83,13 @@ def calcualte_recommendations(cosine_similarities):
     cos_similarity_to_doc = {v: k for k, v in cosine_similarities.items()}
     recommended_docs = []
     for freq in reversed(sorted(cos_similarity_to_doc.keys())):
-        recommended_docs.append(cos_similarity_to_doc[freq].title)
+        recommended_docs.append(cos_similarity_to_doc[freq].name)
+    return recommended_docs
+
+print "--------------------------------"
+print "Recommendations"
+print "--------------------------------"
+
+recommendations = calcualte_recommendations(calculate_cosine_similarity(cleaned_articles))
+for doc in recommendations:
+    print doc
