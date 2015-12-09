@@ -5,6 +5,7 @@ import re
 import sys
 import time
 from collections import defaultdict as dd
+import json
 
 class Scraper:
 
@@ -70,11 +71,11 @@ class Scraper:
         else:
             title = title_tag.string
 
-        print title
+        print title # Remove for production
 
-        urls, links_text = self.find_urls(body_html)
+        urls, links_text, media_link_count = self.find_urls(body_html)
         (clean_text, headers) = self.clean_html(body_html)
-        page = Page(url, title, clean_text, headers, links_text, None)
+        page = Page(url, title, clean_text, headers, links_text, media_link_count)
         return (page, urls)
 
     def find_urls(self, html):
@@ -84,21 +85,27 @@ class Scraper:
         media_link = re.compile('.*\.jpg|.*\.ogg')
         media_link_count = 0
         media_found = set()
+        links_text = dd(int)
 
         all_links = html.find_all('a')
         for l in all_links:
             link = l.get('href')
+            content = self.extract_content([l])[0]
             if good_link.match(link) and not bad_link.match(link):
                 link_urls.append('https://en.wikipedia.org' + link)
+
+                if str(content) != '':
+                    links_text[content] = links_text[content] + 1
+
             elif media_link.match(link):
                 if link not in media_found:
                     media_link_count += 1
                     media_found.add(link)
 
-        links_text = dd(int)
-        for text in self.extract_content(all_links):
-            links_text[text] = links_text[text] + 1
-        return (link_urls, links_text)
+                if str(content) != '':
+                    links_text[content] = links_text[content] + 1
+
+        return (link_urls, links_text, media_link_count)
 
 
     def clean_html(self, html):
@@ -122,6 +129,7 @@ class Scraper:
             array[i] = re.sub(r'\[edit\]', '', str(array[i]))
             array[i] = re.sub(r'\[\d*\]', '', str(array[i]))
             array[i] = re.sub(r'\^', '', str(array[i]))
+
         return array
 
 
@@ -143,6 +151,8 @@ class Page:
         print 'Headers: ' + ', '.join(self.headers)
         print "====================\n"
 
+    def to_json(self):
+        return json.dumps(self.__dict__)
 
 
 if __name__ == "__main__":
@@ -155,3 +165,4 @@ if __name__ == "__main__":
     if len(sys.argv) >= 3 and (sys.argv[2] == 'true' or sys.argv[2] == 't'):
         for page in results:
             page.print_info()
+            page.to_json()
