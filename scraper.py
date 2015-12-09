@@ -14,33 +14,36 @@ class Scraper:
     def __init__(self):
         self.wiki = WikiApi()
 
-    def stream(self, start_term, max):
+    def stream(self, start_term, maxLinks):
         finished, queue, search_results = self.scrape_common(start_term)
 
-        for i in range(max):
+        for i in range(maxLinks):
             if queue.empty():
                 break
             current_url = queue.get()
-            if current_url not in finished:
-                (page, urls) = self.process_page(current_url)
-                finished.add(current_url)
-                for u in urls:
-                    queue.put(u)
-                yield page
+            while current_url in finished:
+                current_url = queue.get()
+            (page, urls) = self.process_page(current_url)
+            finished.add(current_url)
+            for u in urls:
+                queue.put(u)
+            yield page
 
-    def scrape(self, start_term, max):
+    def scrape(self, start_term, maxLinks):
         finished, queue, search_results = self.scrape_common(start_term)
         pages = []
-        for i in range(max):
+
+        for i in range(maxLinks):
             if queue.empty():
                 break
             current_url = queue.get()
-            if current_url not in finished:
-                (page, urls) = self.process_page(current_url)
-                finished.add(current_url)
-                pages.append(page)
-                for u in urls:
-                    queue.put(u)
+            while current_url in finished:
+                current_url = queue.get()
+            (page, urls) = self.process_page(current_url)
+            finished.add(current_url)
+            pages.append(page)
+            for u in urls:
+                queue.put(u)
         return pages
 
     def scrape_common(self, start_term):
@@ -70,8 +73,6 @@ class Scraper:
             title = ''.join(string_contents)
         else:
             title = title_tag.string
-
-        print title # Remove for production
 
         urls, links_text, media_link_count = self.find_urls(body_html)
         (clean_text, headers) = self.clean_html(body_html)
