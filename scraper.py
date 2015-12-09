@@ -2,7 +2,9 @@ from wikiapi import WikiApi
 from bs4 import BeautifulSoup
 from Queue import Queue
 import re
+import sys
 import time
+from collections import defaultdict as dd
 
 class Scraper:
 
@@ -11,16 +13,23 @@ class Scraper:
     def __init__(self):
         self.wiki = WikiApi()
 
-    def scrape(self, start_term, max):
-        finished = set()
-        queue = Queue()
-        pages = []
-        search_results = self.wiki.find(start_term)
-        if not search_results:
-            print 'No pages found. Try a different term'
-        else:
-            queue.put('https://en.wikipedia.org/wiki/' + search_results[0])
+    def stream(self, start_term, max):
+        finished, queue, search_results = self.scrape_common(start_term)
 
+        for i in range(max):
+            if queue.empty():
+                break
+            current_url = queue.get()
+            if current_url not in finished:
+                (page, urls) = self.process_page(current_url)
+                finished.add(current_url)
+                for u in urls:
+                    queue.put(u)
+                yield page
+
+    def scrape(self, start_term, max):
+        finished, queue, search_results = self.scrape_common(start_term)
+        pages = []
         for i in range(max):
             if queue.empty():
                 break
@@ -32,7 +41,17 @@ class Scraper:
                 for u in urls:
                     queue.put(u)
         return pages
-        
+
+    def scrape_common(self, start_term):
+        finished = set()
+        queue = Queue()
+        search_results = self.wiki.find(start_term)
+        if not search_results:
+            print 'No pages found. Try a different term'
+        else:
+            queue.put('https://en.wikipedia.org/wiki/' + search_results[0])
+        return finished, queue, search_results
+
     def process_page(self, url):
         html = self.wiki.get(url)
 
@@ -53,20 +72,33 @@ class Scraper:
 
         print title
 
-        urls = self.find_urls(body_html)
+        urls, links_text = self.find_urls(body_html)
         (clean_text, headers) = self.clean_html(body_html)
-        page = Page(url, title, clean_text, headers)
+        page = Page(url, title, clean_text, headers, links_text, None)
         return (page, urls)
 
     def find_urls(self, html):
-        link_list = []
-        good_link = re.compile('/wiki/*')
+        link_urls = []
+        good_link = re.compile('/wiki/')
         bad_link = re.compile('.*:.*|.*\..*')
-        for l in html.find_all('a'):
+        media_link = re.compile('.*\.jpg|.*\.ogg')
+        media_link_count = 0
+        media_found = set()
+
+        all_links = html.find_all('a')
+        for l in all_links:
             link = l.get('href')
             if good_link.match(link) and not bad_link.match(link):
-                link_list.append('https://en.wikipedia.org' + link)
-        return link_list
+                link_urls.append('https://en.wikipedia.org' + link)
+            elif media_link.match(link):
+                if link not in media_found:
+                    media_link_count += 1
+                    media_found.add(link)
+
+        links_text = dd(int)
+        for text in self.extract_content(all_links):
+            links_text[text] = links_text[text] + 1
+        return (link_urls, links_text)
 
 
     def clean_html(self, html):
@@ -88,17 +120,20 @@ class Scraper:
         for i in range(len(array)):
             array[i] = re.sub(r'<[^>]*>', '', str(array[i]))
             array[i] = re.sub(r'\[edit\]', '', str(array[i]))
-            array[i] = re.sub(r'\[\d\]', '', str(array[i]))
+            array[i] = re.sub(r'\[\d*\]', '', str(array[i]))
+            array[i] = re.sub(r'\^', '', str(array[i]))
         return array
 
 
 class Page:
 
-    def __init__(self, url, name, body, headers):
+    def __init__(self, url, name, body, headers, links, audio_image_count):
         self.url = url
         self.name = name
         self.body = body
         self.headers = headers
+        self.links = links # Map of link_text -> count
+        self.audio_image_count = audio_image_count
 
     def print_info(self):
         print "==== Page info. ===="
@@ -113,9 +148,10 @@ class Page:
 if __name__ == "__main__":
     scraper = Scraper()
     start = time.time()
-    results = scraper.scrape("rihanna", 10)
+    results = scraper.scrape("One Direction", int(sys.argv[1]))
     end = time.time()
     total_time = end - start
     print 'Scraped ' + str(len(results)) + ' pages in ' + str(total_time) + ' seconds'
-    # for page in results:
-    #     page.print_info()
+    if len(sys.argv) >= 3 and (sys.argv[2] == 'true' or sys.argv[2] == 't'):
+        for page in results:
+            page.print_info()
