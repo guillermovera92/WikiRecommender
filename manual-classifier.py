@@ -15,17 +15,17 @@ def classify(s, n):
                 json_[i]['is_good'] = False
                 break
             elif ins == 'u':
-                print '\tURL: ' + page['url']
+                print '\tURL: ' + json_[i]['url']
                 ins = str(raw_input('Is this good? '))
             elif ins == 'h':
                 print '\tHeaders: '
-                for h in page['headers']:
+                for h in json_[i]['headers']:
                     print '\t\t' + h
-                if len(page['headers']):
+                if len(json_[i]['headers']):
                     print '\t\tNo headers'
                 ins = str(raw_input('Is this good? '))
             elif ins == 'f':
-                body = page['body'].split('.')
+                body = json_[i]['body'].split('.')
                 print '\tFirst line: \n\t\t' + body[0]
                 ins = str(raw_input('Is this good? '))
             else:
