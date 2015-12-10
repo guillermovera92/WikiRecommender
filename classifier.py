@@ -92,7 +92,7 @@ class Classifier():
         return self.classifier.predict([log(len(body)), n_links, media_count, music_words_count, regex_res])
 
     def regex(self, line):
-        obj = re.match(r'.*is a[^\\.]*(singer|songwriter|album|song|record|musician|performer).*', line, re.I)
+        obj = re.match(r'.*is a[^\\.]*(singer|songwriter|album|song|EP|musician|performer).*', line, re.I)
         if obj != None:
             return 0
         else:
