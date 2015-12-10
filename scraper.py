@@ -82,7 +82,7 @@ class Scraper:
     def find_urls(self, html):
         link_urls = []
         good_link = re.compile('/wiki/')
-        bad_link = re.compile('.*:.*|.*\..*')
+        bad_link = re.compile('.*:.*|.*\..*|.*\(disambiguation\)')
         media_link = re.compile('.*\.jpg|.*\.ogg')
         media_link_count = 0
         media_found = set()

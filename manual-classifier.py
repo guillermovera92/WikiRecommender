@@ -31,7 +31,7 @@ def classify(s, n):
             else:
                 ins = str(raw_input('(options: y, n, f, h, u) '))
         print '\n========================'
-    output_file = open('wiki-classified-' + str(s) + '-' + str(n) + '.json', mode='w')
+    output_file = open('wiki-classified-G-' + str(s) + '-' + str(n) + '.json', mode='w')
     output_file.write(json.dumps(json_))
     # print type(json_)
 
