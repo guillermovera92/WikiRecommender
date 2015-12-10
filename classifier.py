@@ -5,8 +5,15 @@ from sklearn import tree
 from sklearn import cross_validation
 from sklearn import svm
 import numpy as np
-from scraper import Scraper
+from page import Page
 import re
+
+#========================================
+# Usage:
+# import classifier
+# classifier = classifier.Classifier()
+# classifier.classify(page) # returns 0/1
+#========================================
 
 
 class Classifier():

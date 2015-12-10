@@ -6,13 +6,17 @@ import sys
 import time
 from collections import defaultdict as dd
 import json
+import classifier
+from page import Page
 
 class Scraper:
 
     prohibited_headers = set(['Contents', 'See also', 'References'])
+    classifier = classifier.Classifier()
 
     def __init__(self):
         self.wiki = WikiApi()
+        self.bad_urls = set([p['url'] for p in Scraper.classifier.non_accepted_pages])
 
     def stream(self, start_term, maxLinks):
         finished, queue, search_results = self.scrape_common(start_term)
@@ -33,7 +37,7 @@ class Scraper:
         finished, queue, search_results = self.scrape_common(start_term)
         pages = []
 
-        for i in range(maxLinks):
+        while len(pages) < maxLinks:
             if queue.empty():
                 break
             current_url = queue.get()
@@ -41,7 +45,9 @@ class Scraper:
                 current_url = queue.get()
             (page, urls) = self.process_page(current_url)
             finished.add(current_url)
-            pages.append(page)
+            if Scraper.classifier.classify(page) == 1 and page.url not in self.bad_urls:
+                pages.append(page)
+                print page.name
             for u in urls:
                 queue.put(u)
         return pages
@@ -134,32 +140,10 @@ class Scraper:
         return array
 
 
-class Page:
-
-    def __init__(self, url, name, body, headers, links, audio_image_count):
-        self.url = url
-        self.name = name
-        self.body = body
-        self.headers = headers
-        self.links = links # Map of link_text -> count
-        self.audio_image_count = audio_image_count
-
-    def print_info(self):
-        print "==== Page info. ===="
-        print 'URL: ' + self.url
-        print 'Name: ' + self.name
-        print 'Body sample: ' + self.body[0:100] + '...'
-        print 'Headers: ' + ', '.join(self.headers)
-        print "====================\n"
-
-    def to_json(self):
-        return json.dumps(self.__dict__)
-
-
 if __name__ == "__main__":
     scraper = Scraper()
     start = time.time()
-    results = scraper.scrape("One Direction", int(sys.argv[1]))
+    results = scraper.scrape("Lady Gaga", int(sys.argv[1]))
     end = time.time()
     total_time = end - start
     print 'Scraped ' + str(len(results)) + ' pages in ' + str(total_time) + ' seconds'

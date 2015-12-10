@@ -4,14 +4,16 @@ from collections import defaultdict
 from math import log
 from scipy import spatial
 import scraper
+import classifier
 
-def create_cleaned_set(articles):
-    out = []
-    for article in articles:
-        obj = re.match(r'.*is a[^\\.]*(singer|songwriter|album|song|record|musician|performer).*', article.body, re.I)
-        if obj != None:
-            out.append(article)
-    return out
+# classifier = classifier.Classifier()
+
+# def create_cleaned_set(articles):
+#     out = []
+#     for article in articles:
+#         if classifier.classify(article) == 1:
+#             out.append(article)
+#     return out
 
 def get_freq_words(filename='words.txt'):
     for line in open(filename):
@@ -58,9 +60,9 @@ def generate_frequency_vectors(docs, blacklist, doc_counts):
         doc.frequency_vector = vector
 
 scrp = scraper.Scraper()
-all_articles = scrp.scrape('One Direction', 100) # This will hook into Guillermo's code
+all_articles = scrp.scrape('Lady Gaga', 100) # This will hook into Guillermo's code
 
-cleaned_articles = create_cleaned_set(all_articles)
+cleaned_articles = all_articles #create_cleaned_set(all_articles)
 generate_frequency_vectors(cleaned_articles, words_set, calc_doc_counts(cleaned_articles, words_set))
 
 # From here do cosine similarity...
