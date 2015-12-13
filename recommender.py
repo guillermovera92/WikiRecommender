@@ -4,16 +4,7 @@ from collections import defaultdict
 from math import log
 from scipy import spatial
 import scraper
-import classifier
 
-# classifier = classifier.Classifier()
-
-# def create_cleaned_set(articles):
-#     out = []
-#     for article in articles:
-#         if classifier.classify(article) == 1:
-#             out.append(article)
-#     return out
 
 def get_freq_words(filename='words.txt'):
     for line in open(filename):
@@ -59,12 +50,6 @@ def generate_frequency_vectors(docs, blacklist, doc_counts):
             vector[word] = tfidf
         doc.frequency_vector = vector
 
-scrp = scraper.Scraper()
-all_articles = scrp.scrape('Lady Gaga', 100) # This will hook into Guillermo's code
-
-cleaned_articles = all_articles #create_cleaned_set(all_articles)
-generate_frequency_vectors(cleaned_articles, words_set, calc_doc_counts(cleaned_articles, words_set))
-
 # From here do cosine similarity...
 def calculate_cosine_similarity(docs):
     seed_article = docs[0]
@@ -88,10 +73,40 @@ def calcualte_recommendations(cosine_similarities):
         recommended_docs.append(cos_similarity_to_doc[freq].name)
     return recommended_docs
 
-print "--------------------------------"
-print "Recommendations"
-print "--------------------------------"
+def user_input():
+    seed = str(raw_input('Please enter an artist or song you like: '))
+    article_num = ''
+    while not article_num.isdigit():
+        article_num = raw_input('\nPlease enter the number of articles you would like to scan\n' + 
+            '(20 is fast but less exhaustive, 100 is slow but more exhaustive): ')
+        if not article_num.isdigit():
+            print '\n>>> Please enter a whole number'
+    
+    print '\n+-------------+'
+    print '| Scanning... |'
+    print '+-------------+\n'
+    return seed, int(article_num)
 
-recommendations = calcualte_recommendations(calculate_cosine_similarity(cleaned_articles))
-for doc in recommendations:
-    print doc
+
+if __name__ == '__main__':
+    print '+-------------------------------------------------------+'
+    print '| Welcome to the WikiRecommender: A Texty New Approach! |'
+    print '+-------------------------------------------------------+\n'
+    print 'Setting up the classifier...'
+    scrp = scraper.Scraper()
+
+    all_articles = []
+    
+    while len(all_articles) == 0:
+        seed, article_num = user_input()
+        all_articles = scrp.scrape(seed, article_num)
+    
+
+    cleaned_articles = all_articles
+    generate_frequency_vectors(cleaned_articles, words_set, calc_doc_counts(cleaned_articles, words_set))
+    recommendations = calcualte_recommendations(calculate_cosine_similarity(cleaned_articles))
+    print "\n+-----------------+"
+    print "| Recommendations |"
+    print "+-----------------+\n"
+    for doc in recommendations:
+        print doc

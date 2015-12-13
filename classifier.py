@@ -7,6 +7,7 @@ from sklearn import svm
 import numpy as np
 from page import Page
 import re
+import random
 
 #========================================
 # Usage:
@@ -46,8 +47,10 @@ class Classifier():
 
     def build_page_sets(self):
         if len(self.accepted_pages) < len(self.non_accepted_pages):
+            random.shuffle(self.non_accepted_pages)
             self.non_accepted_pages = self.non_accepted_pages[0:len(self.accepted_pages)]
         else:
+            random.shuffle(self.accepted_pages)
             self.accepted_pages = self.accepted_pages[:len(self.non_accepted_pages)]
         print "Reduced page set: accepted = %d, non accpeted = %d\n" % (len(self.accepted_pages), len(self.non_accepted_pages))
 
@@ -65,14 +68,8 @@ class Classifier():
         return labels, features
 
     def make_classifier(self):
-        Y = self.labels
-        X = self.features
         tree_model = tree.DecisionTreeClassifier(max_depth=3)
-        tree_model.fit(X, Y)
-        accuracy = cross_validation.cross_val_score(tree_model, X, Y, scoring='accuracy')
-        precision = cross_validation.cross_val_score(tree_model, X, Y, scoring='precision')
-        print 'Correlation accuracy (3 runs): ', accuracy
-        print 'Correlation precision average: ', np.mean(accuracy), '\n'
+        tree_model.fit(self.features, self.labels)
         return tree_model   
 
     def count_words(self, body, words):
@@ -100,7 +97,11 @@ class Classifier():
 
 if __name__ == '__main__':
     classifier = Classifier()
-    scraper = Scraper()
-    results = scraper.scrape('Bob Dylan', 10)
-    for r in results:
-        print 'Page: %s. Result: %d' % (r.name, classifier.classify(r)) 
+    tree_model = classifier.classifier
+    X = classifier.features
+    Y = classifier.labels
+    accuracy = cross_validation.cross_val_score(tree_model, X, Y, scoring='accuracy')
+    precision = cross_validation.cross_val_score(tree_model, X, Y, scoring='precision')
+    print 'Correlation accuracy (3 runs): ', accuracy
+    print 'Correlation precision average: ', np.mean(accuracy), '\n'
+    

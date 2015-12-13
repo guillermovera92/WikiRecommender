@@ -6,17 +6,17 @@ import sys
 import time
 from collections import defaultdict as dd
 import json
-import classifier
+import classifier 
 from page import Page
 
 class Scraper:
 
     prohibited_headers = set(['Contents', 'See also', 'References'])
-    classifier = classifier.Classifier()
 
     def __init__(self):
+        self.classifier = classifier.Classifier()
         self.wiki = WikiApi()
-        self.bad_urls = set([p['url'] for p in Scraper.classifier.non_accepted_pages])
+        self.bad_urls = set([p['url'] for p in self.classifier.non_accepted_pages])
 
     def stream(self, start_term, maxLinks):
         finished, queue, search_results = self.scrape_common(start_term)
@@ -45,7 +45,7 @@ class Scraper:
                 current_url = queue.get()
             (page, urls) = self.process_page(current_url)
             finished.add(current_url)
-            if Scraper.classifier.classify(page) == 1 and page.url not in self.bad_urls:
+            if self.classifier.classify(page) == 1 and page.url not in self.bad_urls:
                 pages.append(page)
                 print page.name
             for u in urls:
@@ -136,7 +136,6 @@ class Scraper:
             array[i] = re.sub(r'\[edit\]', '', str(array[i]))
             array[i] = re.sub(r'\[\d*\]', '', str(array[i]))
             array[i] = re.sub(r'\^', '', str(array[i]))
-
         return array
 
 
