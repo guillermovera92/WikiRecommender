@@ -1,3 +1,5 @@
+import json
+
 # Simple page object that contains all relevant information for the recommender
 # about a page in Wikipedia
 class Page:

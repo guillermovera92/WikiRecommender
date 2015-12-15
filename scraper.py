@@ -8,6 +8,7 @@ from collections import defaultdict as dd
 import json
 import classifier 
 from page import Page
+import sys
 
 # This class scrapes Wikipedia using the wikiapi https://github.com/richardasaurus/wiki-api
 class Scraper:
@@ -165,7 +166,7 @@ class Scraper:
 if __name__ == "__main__":
     scraper = Scraper()
     start = time.time()
-    results = scraper.scrape("Lady Gaga", 10)
+    results = scraper.scrape(sys.argv[1], int(sys.argv[2]))
     end = time.time()
     total_time = end - start
     print 'Scraped ' + str(len(results)) + ' pages in ' + str(total_time) + ' seconds'
