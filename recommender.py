@@ -5,17 +5,28 @@ from math import log
 from scipy import spatial
 import scraper
 
-
+# Returns a set of frequently used words based
+# on an input filename.
 def get_freq_words(filename='words.txt'):
     for line in open(filename):
         words = line.split()
         return set(words)
 
+# Set up an initial list of frequently used words,
+# assign to a global variable
 words_set = get_freq_words()
 
 def split(s):
     return re.split('\W+', s.lower())
 
+#========================================================
+# TF-IDF FUNCTIONS
+#========================================================
+
+# For all articles, count the number of times a
+# given word is used in a single article; used
+# for the TF-IDF calculations later. Ignores words
+# in the blacklist
 def calc_doc_counts(docs, blacklist):
     doc_count = defaultdict(int)
     for d in docs:
@@ -28,13 +39,20 @@ def calc_doc_counts(docs, blacklist):
             doc_count[word] += 1
     return doc_count
 
+# Generate the frequency vectors proper
 DOC_CONST = 0.5
 def generate_frequency_vectors(docs, blacklist, doc_counts):
+
+    # A helper function that returns the TF-IDF score
+    # based on inputs... Algorithm from:
+    # http://www.tfidf.com
     def calc_TF_IDF(term, doc_words, term_counts):
         tf = term_counts[term] / float(len(doc_words))
         idf = log(len(docs) / doc_counts[term])
         return tf * (idf + DOC_CONST)
 
+    # Iterate over every article to generate term
+    # counts
     for doc in docs:
         doc_words = split(doc.body)
         term_counts = defaultdict(int)
@@ -44,11 +62,13 @@ def generate_frequency_vectors(docs, blacklist, doc_counts):
         # Create the vector using TF-IDF
         vector = {}
         for word, count in term_counts.iteritems():
-            if word in blacklist:
+            if word in blacklist: # Ignore bad words
                 continue
             tfidf = calc_TF_IDF(word, doc_words, term_counts)
-            vector[word] = tfidf
+            vector[word] = tfidf # Add to sparse word vector
         doc.frequency_vector = vector
+
+#========================================================
 
 # From here do cosine similarity...
 def calculate_cosine_similarity(docs):
@@ -73,6 +93,8 @@ def calcualte_recommendations(cosine_similarities):
         recommended_docs.append(cos_similarity_to_doc[freq].name)
     return recommended_docs
 
+# Some nice command line functionality to make it easier for
+# the end user to use the program
 def user_input():
     seed = str(raw_input('Please enter an artist or song you like: '))
     article_num = ''
@@ -88,25 +110,28 @@ def user_input():
     return seed, int(article_num)
 
 
+# Main entry point.
 if __name__ == '__main__':
     print '+-------------------------------------------------------+'
     print '| Welcome to the WikiRecommender: A Texty New Approach! |'
     print '+-------------------------------------------------------+\n'
     print 'Setting up the classifier...'
-    scrp = scraper.Scraper()
+    scrp = scraper.Scraper() # Set up the scraper/classifier
 
     all_articles = []
     
+    # Start scraping
     while len(all_articles) == 0:
         seed, article_num = user_input()
         all_articles = scrp.scrape(seed, article_num)
     
-
+    # Our articles are already cleaned due to the integrated
+    # classifier
     cleaned_articles = all_articles
     generate_frequency_vectors(cleaned_articles, words_set, calc_doc_counts(cleaned_articles, words_set))
     recommendations = calcualte_recommendations(calculate_cosine_similarity(cleaned_articles))
     print "\n+-----------------+"
     print "| Recommendations |"
     print "+-----------------+\n"
-    for doc in recommendations:
+    for doc in recommendations: # Finally, print recommendations
         print doc
