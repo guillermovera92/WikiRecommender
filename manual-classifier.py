@@ -1,6 +1,11 @@
+#!/usr/bin/python
 import json
 import sys
 
+# This scrip was used to manually classify Wikipedia articles to use them as a training
+# set for the classifier. The pages have already been downloaded and stored as JSON.
+# This script will add a true/false field that contains the result of the manual
+# classification.
 def classify(s, n):
     json_ = json.load(open('wikidb.json'))
     json_ = json_[s:n]

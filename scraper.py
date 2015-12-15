@@ -1,23 +1,29 @@
+#!/usr/bin/python
 from wikiapi import WikiApi
 from bs4 import BeautifulSoup
 from Queue import Queue
 import re
-import sys
 import time
 from collections import defaultdict as dd
 import json
 import classifier 
 from page import Page
 
+# This class scrapes Wikipedia using the wikiapi https://github.com/richardasaurus/wiki-api
 class Scraper:
 
     prohibited_headers = set(['Contents', 'See also', 'References'])
 
+    # The scraper uses the classifier to only send out articles that are more likely to
+    # be music related
     def __init__(self):
         self.classifier = classifier.Classifier()
         self.wiki = WikiApi()
         self.bad_urls = set([p['url'] for p in self.classifier.non_accepted_pages])
 
+    # The stream method is used for scraping a large number of maximum links.
+    # This method does not implement the classifier filtering because its main
+    # purpose is for building the database of pages for manual classification
     def stream(self, start_term, maxLinks):
         finished, queue, search_results = self.scrape_common(start_term)
 
@@ -33,6 +39,10 @@ class Scraper:
                 queue.put(u)
             yield page
 
+    # The scrape method is used for a smaller number of maximum links. It performs
+    # a breadth first search given an initial term. It uses a queue to keep track
+    # of the pages to be scraped and a set of the already scraped to prevent 
+    # duplicates
     def scrape(self, start_term, maxLinks):
         finished, queue, search_results = self.scrape_common(start_term)
         pages = []
@@ -45,6 +55,9 @@ class Scraper:
                 current_url = queue.get()
             (page, urls) = self.process_page(current_url)
             finished.add(current_url)
+
+            # Only if the classifier predicts it as a good page, a page will
+            # be added to the pages list which is returned at the end
             if self.classifier.classify(page) == 1 and page.url not in self.bad_urls:
                 pages.append(page)
                 print page.name
@@ -52,6 +65,7 @@ class Scraper:
                 queue.put(u)
         return pages
 
+    # Common code for both methods that crawl wikipedia
     def scrape_common(self, start_term):
         finished = set()
         queue = Queue()
@@ -62,6 +76,7 @@ class Scraper:
             queue.put('https://en.wikipedia.org/wiki/' + search_results[0])
         return finished, queue, search_results
 
+    # Process a page's HTML using BeautifulSoup to extract useful information
     def process_page(self, url):
         html = self.wiki.get(url)
 
@@ -85,6 +100,9 @@ class Scraper:
         page = Page(url, title, clean_text, headers, links_text, media_link_count)
         return (page, urls)
 
+    # Find all URLs in a given HTML that redirect to another article in Wikipedia
+    # Page links and media links (pictures, audio) are stored in different lists
+    # but are both used.
     def find_urls(self, html):
         link_urls = []
         good_link = re.compile('/wiki/')
@@ -114,7 +132,7 @@ class Scraper:
 
         return (link_urls, links_text, media_link_count)
 
-
+    # Fucntion to extract the body and the headers of an article
     def clean_html(self, html):
         paragraphs = html.find_all('p')
         headers = html.find_all(re.compile('h\d'))
@@ -122,6 +140,7 @@ class Scraper:
         headers_list = self.clean_headers(headers)
         return (clean_text, headers_list)
 
+    # Clean the list of headers of the prohibited, common headers
     def clean_headers(self, array):
         raw_headers = self.extract_content(array)
         final_headers = []
@@ -130,6 +149,9 @@ class Scraper:
                 final_headers.append(h)
         return final_headers
 
+    # Fuction to clean the HTML body of a page. It removes common links that 
+    # would cause noise in our system such as [edit] buttons and reference numbers
+    # e.g. [2]. 
     def extract_content(self, array):
         for i in range(len(array)):
             array[i] = re.sub(r'<[^>]*>', '', str(array[i]))
@@ -138,15 +160,15 @@ class Scraper:
             array[i] = re.sub(r'\^', '', str(array[i]))
         return array
 
-
+# If ran as main, this script will scrape wikipedia starting with Lady Gaga
+# and it will try to find 10 links that are music related, starting 
 if __name__ == "__main__":
     scraper = Scraper()
     start = time.time()
-    results = scraper.scrape("Lady Gaga", int(sys.argv[1]))
+    results = scraper.scrape("Lady Gaga", 10)
     end = time.time()
     total_time = end - start
     print 'Scraped ' + str(len(results)) + ' pages in ' + str(total_time) + ' seconds'
-    if len(sys.argv) >= 3 and (sys.argv[2] == 'true' or sys.argv[2] == 't'):
-        for page in results:
-            page.print_info()
-            page.to_json()
+    for page in results:
+        page.print_info()
+        page.to_json()

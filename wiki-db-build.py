@@ -4,6 +4,9 @@ import sys
 import re
 import time
 
+# This script was only used to gather data to manually classify and then used it to
+# train the classifier. It scraped wikipedia based on an inital query and maximum 
+# of links.
 
 def build_db(starting_query, max_articles, file_name):
 	db = open(file_name, mode='w+')

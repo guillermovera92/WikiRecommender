@@ -1,3 +1,5 @@
+# Simple page object that contains all relevant information for the recommender
+# about a page in Wikipedia
 class Page:
 
     def __init__(self, url, name, body, headers, links, audio_image_count):
